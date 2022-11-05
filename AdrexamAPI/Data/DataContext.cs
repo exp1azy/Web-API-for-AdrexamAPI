@@ -8,16 +8,19 @@ namespace AdrexamAPI.Data
         public DbSet<Comments> Comments { get; set; }
         public DbSet<NavigationItems> NavigationItems { get; set; }
         public DbSet<Questions> Questions { get; set; }
+        public DbSet<Tokens> Tokens { get; set; }
 
-        public DataContext()
+        private readonly IConfiguration _config;
+        public DataContext(IConfiguration config)
         {
+            _config = config;
             Database.EnsureCreated();
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseMySql(
-                "server=localhost;user=root;password=anton.panin100702;database=gb_adrexam;",
-                new MySqlServerVersion(new Version(8, 0, 30))
+                _config["ConnectionString"],
+                new MySqlServerVersion(_config["MySqlVersion"])
             );
         }
     }

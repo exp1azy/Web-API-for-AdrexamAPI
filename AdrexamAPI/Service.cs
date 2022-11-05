@@ -28,10 +28,11 @@ namespace AdrexamAPI
             GetParents(result, item);
         }
 
-        public async Task<List<SectionModel>> GetSections(CancellationToken cancellationToken)
+        public async Task<List<SectionModel?>> GetSectionsAsync(CancellationToken cancellationToken)
         {
-            var navItems = await _dataContext.Questions.Include(i => i.NavigationItem).GroupBy(q => q.NavigationItemId)
-                .Select(s => s.First().NavigationItem).ToListAsync(cancellationToken);
+            var navItems =  await _dataContext.NavigationItems
+                .FromSqlRaw("select * from NavigationItems where id in (SELECT NavigationItemId from Questions group by NavigationItemId)")
+                .ToListAsync(cancellationToken);
 
             List<NavigationItems> result = new List<NavigationItems>();
             foreach (var navItem in navItems)
@@ -42,17 +43,21 @@ namespace AdrexamAPI
             return navItems.Concat(result.DistinctBy(i => i.Id)).Select(s => SectionModel.Map(s)).ToList();
         }
 
-        public async Task<List<QuestionModel?>> GetQuestions(int sectionId, int from, int size, CancellationToken cancellationToken)
+        public async Task<List<QuestionModel?>> GetQuestionsAsync(int sectionId, int from, int size, CancellationToken cancellationToken)
         {
-            var query = await _dataContext.Questions.Where(e => e.NavigationItemId == sectionId).Include(i => i.Answers).Include(i => i.Comments).Skip(from).OrderBy(o => o.Id).ToListAsync(cancellationToken);
-            int maxSize = _config.GetValue<int>("MaxSize");
+            var query = _dataContext.Questions
+                .Include(i => i.Answers).Include(i => i.Comments)
+                .Where(e => e.NavigationItemId == sectionId).Skip(from)
+                .OrderBy(o => o.Id).AsQueryable();
+
+            int maxSize = _config.GetValue<int>("MaxQueryPageSize");
 
             if(size <= maxSize)
-                query = query.Take(size).ToList();
+                query = query.Take(size);
             else
-                query = query.Take(maxSize).ToList();
+                query = query.Take(maxSize);
 
-            return query.Select(s => QuestionModel.Map(s)).ToList();
+            return (await query.ToListAsync(cancellationToken)).Select(s => QuestionModel.Map(s)).ToList();
         }
 
         public async Task<QuestionModel?> GetRandomQuestionAsync(List<int> sectionId, CancellationToken cancellationToken)
@@ -60,7 +65,7 @@ namespace AdrexamAPI
             Random random = new Random();
 
             var query = _dataContext.Questions.AsNoTracking().Include(m => m.Answers).Include(m => m.Comments)
-                .Where(q => !q.IsDeleted).AsQueryable();
+                .Where(q => q.IsDeleted != true).AsQueryable();
             if (sectionId != null && sectionId.Any())
                 query = query.Where(i => sectionId.Contains(i.NavigationItemId));
 
