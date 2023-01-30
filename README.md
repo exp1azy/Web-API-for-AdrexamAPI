@@ -1,4 +1,4 @@
-# API для сайта Adrexam.ru содержит 3 GET-запроса:
-1) Получение дерева разделов, в каждом из которых может быть один или несколько вопросов
-2) Получение страницы списка вопросов из указанного раздела
-3) Получение одного случайного вопроса из указанных разделов, либо из набора всех вопросов, если список разделов пуст
+# The API for the Adrexam.ru website contains 3 GET requests:
+1) Getting a tree of sections, each of which can have one or more questions
+2) Get the list of questions page from the specified topic
+3) Getting one random question from the specified sections, or from a set of all questions if the list of sections is empty
